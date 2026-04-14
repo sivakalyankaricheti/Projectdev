@@ -9,14 +9,14 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh 'docker build -t my-python-sum .'
+                bat 'docker build -t my-python-sum .'
             }
         }
 
         stage('Run') {
             steps {
                 script {
-                    CONTAINER_ID = sh(
+                    CONTAINER_ID = bat(
                         script: 'docker run -dit my-python-sum',
                         returnStdout: true
                     ).trim()
@@ -35,12 +35,12 @@ pipeline {
                         def arg2 = vars[1]
                         def expectedSum = vars[2].toFloat()
 
-                        def output = sh(
-                            script: "docker exec ${CONTAINER_ID} python /app/sum.py ${arg1} ${arg2}",
+                        def output = bat(
+                            script: "docker exec %CONTAINER_ID% python /app/sum.py ${arg1} ${arg2}",
                             returnStdout: true
                         ).trim()
 
-                        def result = output.toFloat()
+                        def result = output.split('\n')[-1].trim().toFloat()
 
                         if (result == expectedSum) {
                             echo "Test passed for ${arg1} + ${arg2}"
@@ -55,8 +55,8 @@ pipeline {
 
     post {
         always {
-            sh "docker stop ${CONTAINER_ID} || true"
-            sh "docker rm ${CONTAINER_ID} || true"
+            bat "docker stop %CONTAINER_ID%"
+            bat "docker rm %CONTAINER_ID%"
         }
     }
 }
