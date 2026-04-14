@@ -16,10 +16,8 @@ pipeline {
         stage('Run') {
             steps {
                 script {
-                    CONTAINER_ID = bat(
-                        script: 'docker run -dit my-python-sum',
-                        returnStdout: true
-                    ).trim()
+                    def output = bat(script: 'docker run -dit my-python-sum', returnStdout: true)
+                    CONTAINER_ID = output.split('\n')[-1].trim()
                 }
             }
         }
@@ -36,9 +34,9 @@ pipeline {
                         def expectedSum = vars[2].toFloat()
 
                         def output = bat(
-                            script: "docker exec %CONTAINER_ID% python /app/sum.py ${arg1} ${arg2}",
+                            script: "docker exec ${CONTAINER_ID} python /app/sum.py ${arg1} ${arg2}",
                             returnStdout: true
-                        ).trim()
+                        )
 
                         def result = output.split('\n')[-1].trim().toFloat()
 
@@ -51,12 +49,20 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy') {
+            steps {
+                bat 'docker login'
+                bat 'docker tag my-python-sum yourdockerhubusername/my-python-sum'
+                bat 'docker push yourdockerhubusername/my-python-sum'
+            }
+        }
     }
 
     post {
         always {
-            bat "docker stop %CONTAINER_ID%"
-            bat "docker rm %CONTAINER_ID%"
+            bat "docker stop ${CONTAINER_ID}"
+            bat "docker rm ${CONTAINER_ID}"
         }
     }
 }
